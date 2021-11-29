@@ -114,6 +114,7 @@
 #include <ostream>
 #include <string>
 #include <utility>
+#include "/Users/brandonliu/Documents/Github/pc/api/chase.h"
 
 #ifndef NDEBUG
 #define NDEBUG 1
@@ -2182,8 +2183,39 @@ void btree<P>::try_shrink() {
   }
 }
 
-template <typename P> template <typename IterType>
+template <typename Params1>
+bool internal_last_end_func(void* ptr, struct end_arg_t _) {
+  btree_node<Params1> node = (btree_node<Params1>)ptr;
+  return node && node->position() == node->count();
+}
+
+template <typename Params1>
+void* internal_last_next_func(void* ptr, struct next_arg_t _) {
+  btree_node<Params1> node = (btree_node<Params1>)ptr;
+  if (node->leaf()) {
+    return NULL;  
+  }
+  return (void*)(node->parent());
+}
+
+template <typename P>
+template <typename IterType>
+template<typename Params2>
 inline IterType btree<P>::internal_last(IterType iter) {
+  struct end_arg_t end_arg;
+  struct next_arg_t next_arg;
+  // Next and end args are unused in this method
+  // Initialize end and next args data/exit code if needed here
+
+  struct chase_args_t args;
+  args.backend_type = LOCAL;
+  args.end_arg = end_arg;
+  args.next_arg = next_arg;
+  void* ptr = Chase((void*)iter.node, internal_last_end_func, internal_last_next_func, args);
+  iter.node = (btree_node<Params2>)ptr;
+  iter.position = ((btree_node<Params2>)ptr)->position();
+  return iter;
+  /* Original code
   while (iter.node && iter.position == iter.node->count()) {
     iter.position = iter.node->position();
     iter.node = iter.node->parent();
@@ -2191,7 +2223,7 @@ inline IterType btree<P>::internal_last(IterType iter) {
       iter.node = NULL;
     }
   }
-  return iter;
+  return iter;*/
 }
 
 template <typename P>
