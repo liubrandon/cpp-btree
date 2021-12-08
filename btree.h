@@ -1310,8 +1310,14 @@ class btree : public Params::key_compare {
   // pointing at. Note that "iter" might be pointing to an invalid location as
   // iter.position == iter.node->count(). This routine simply moves iter up in
   // the tree to a valid location.
-  template <typename IterType>
-  static IterType internal_last(IterType iter);
+template <typename IterType>
+static IterType internal_last(IterType iter);
+
+template <typename IterType>
+static bool internal_last_end_func(void* ptr, struct end_arg_t _);
+
+template <typename IterType>
+static void* internal_last_next_func(void* ptr, struct next_arg_t _);
 
   // Returns an iterator pointing to the leaf position at which key would
   // reside in the tree. We provide 2 versions of internal_locate. The first
@@ -2183,47 +2189,55 @@ void btree<P>::try_shrink() {
   }
 }
 
-template <typename Params1>
-bool internal_last_end_func(void* ptr, struct end_arg_t _) {
-  btree_node<Params1> node = (btree_node<Params1>)ptr;
-  return node && node->position() == node->count();
+template <typename P> template <typename IterType>
+bool btree<P>::internal_last_end_func(void* ptr, struct end_arg_t _) {
+  IterType iter = *static_cast<IterType*>(ptr);
+  return !iter.node || iter.node->position() != iter.node->count();
 }
 
-template <typename Params1>
-void* internal_last_next_func(void* ptr, struct next_arg_t _) {
-  btree_node<Params1> node = (btree_node<Params1>)ptr;
-  if (node->leaf()) {
-    return NULL;  
+template <typename P> template <typename IterType>
+void* btree<P>::internal_last_next_func(void* ptr, struct next_arg_t _) {
+  IterType iter = *static_cast<IterType*>(ptr);
+  iter.position = iter.node->position();
+  iter.node = iter.node->parent();
+  if (iter.node->leaf()) {
+    iter.node = NULL;  
   }
-  return (void*)(node->parent());
+  return (void*)(&iter);
 }
 
-template <typename P>
-template <typename IterType>
-template<typename Params2>
+template <typename P> template <typename IterType>
 inline IterType btree<P>::internal_last(IterType iter) {
+  std::cout << "internal_last called" << std::endl;
   struct end_arg_t end_arg;
   struct next_arg_t next_arg;
   // Next and end args are unused in this method
   // Initialize end and next args data/exit code if needed here
-
+  
   struct chase_args_t args;
   args.backend_type = LOCAL;
   args.end_arg = end_arg;
   args.next_arg = next_arg;
-  void* ptr = Chase((void*)iter.node, internal_last_end_func, internal_last_next_func, args);
-  iter.node = (btree_node<Params2>)ptr;
-  iter.position = ((btree_node<Params2>)ptr)->position();
+  void* ptr = Chase((void*)&iter, internal_last_end_func<IterType>, internal_last_next_func<IterType>, args);
+  // // node_type* node = static_cast<node_type*>(ptr);
+  // // iter.node = node;
+  // // iter.position = node->position();
   return iter;
-  /* Original code
-  while (iter.node && iter.position == iter.node->count()) {
-    iter.position = iter.node->position();
-    iter.node = iter.node->parent();
-    if (iter.node->leaf()) {
-      iter.node = NULL;
-    }
-  }
-  return iter;*/
+
+  // std::cout << "node position: " << iter.position << std::endl;
+  // std::cout << "node count: " << iter.node->count() << std::endl;
+  // Original code
+  // while (iter.node && iter.position == iter.node->count()) {
+  //   std::cout << "node position " << iter.node->position() << std::endl;
+  //   std::cout << "node count " << iter.node->count() << std::endl;
+  //   iter.position = iter.node->position();
+  //   iter.node = iter.node->parent();
+  //   if (iter.node->leaf()) {
+  //     std::cout << "leaf" << std::endl;
+  //     iter.node = NULL;
+  //   }
+  // }
+  // return iter;
 }
 
 template <typename P>
@@ -2424,3 +2438,4 @@ int btree<P>::internal_verify(
 } // namespace btree
 
 #endif  // UTIL_BTREE_BTREE_H__
+
