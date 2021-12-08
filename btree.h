@@ -1314,10 +1314,10 @@ template <typename IterType>
 static IterType internal_last(IterType iter);
 
 template <typename IterType>
-static bool internal_last_end_func(void* ptr, struct end_arg_t _);
+static bool internal_last_end_func(void* ptr, chase_args_t args);
 
 template <typename IterType>
-static void* internal_last_next_func(void* ptr, struct next_arg_t _);
+static void* internal_last_next_func(void* ptr, chase_args_t args);
 
   // Returns an iterator pointing to the leaf position at which key would
   // reside in the tree. We provide 2 versions of internal_locate. The first
@@ -2195,23 +2195,23 @@ enum {
 };
 
 template <typename P> template <typename IterType>
-bool btree<P>::internal_last_end_func(void* ptr, struct end_arg_t arg) {
+bool btree<P>::internal_last_end_func(void* ptr, chase_args_t args) {
   node_type* node = (node_type*)ptr;
   if(!node) {
-    *arg.exit_code = EXIT_LEAF;
+    *args.exit_code = EXIT_LEAF;
     return true;
   }
-  if(((IterType*)(arg.data))->position != node->count()) {
-    *arg.exit_code = EXIT_POS_NOT_COUNT;
+  if(((IterType*)(args.data))->position != node->count()) {
+    *args.exit_code = EXIT_POS_NOT_COUNT;
     return true;
   }
   return false;
 }
 
 template <typename P> template <typename IterType>
-void* btree<P>::internal_last_next_func(void* ptr, struct next_arg_t arg) {
+void* btree<P>::internal_last_next_func(void* ptr, chase_args_t args) {
   node_type* node = (node_type*)ptr;
-  ((IterType*)(arg.data))->position = node->position();
+  ((IterType*)(args.data))->position = node->position();
   node = node->parent();
   if (node->leaf()) {
     node = NULL;  
@@ -2223,16 +2223,12 @@ void* btree<P>::internal_last_next_func(void* ptr, struct next_arg_t arg) {
 
 template <typename P> template <typename IterType>
 inline IterType btree<P>::internal_last(IterType iter) {
-  struct chase_args_t args;
-  struct end_arg_t end_arg;
-  struct next_arg_t next_arg;
+  std::cout << "# internal_last() called" << std::endl;
+  chase_args_t args;
   args.backend_type = LOCAL;
-  int exit_code = 0;
-  end_arg.exit_code = &exit_code;
-  end_arg.data = &iter;
-  args.end_arg = end_arg;
-  next_arg.data = &iter;
-  args.next_arg = next_arg;
+  int exit_code;
+  args.exit_code = &exit_code;
+  args.data = &iter;
   void* ptr = Chase((void*)iter.node, internal_last_end_func<IterType>, internal_last_next_func<IterType>, args);
   if(exit_code == EXIT_POS_NOT_COUNT) {
     iter.node = static_cast<node_type*>(ptr);
