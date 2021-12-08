@@ -2201,7 +2201,7 @@ bool btree<P>::internal_last_end_func(void* ptr, struct end_arg_t arg) {
     *arg.exit_code = EXIT_LEAF;
     return true;
   }
-  if(node->position() != node->count()) {
+  if(((IterType*)(arg.data))->position != node->count()) {
     *arg.exit_code = EXIT_POS_NOT_COUNT;
     return true;
   }
@@ -2229,28 +2229,24 @@ inline IterType btree<P>::internal_last(IterType iter) {
   args.backend_type = LOCAL;
   int exit_code = 0;
   end_arg.exit_code = &exit_code;
+  end_arg.data = &iter;
   args.end_arg = end_arg;
   next_arg.data = &iter;
   args.next_arg = next_arg;
   void* ptr = Chase((void*)iter.node, internal_last_end_func<IterType>, internal_last_next_func<IterType>, args);
   if(exit_code == EXIT_POS_NOT_COUNT) {
     iter.node = static_cast<node_type*>(ptr);
-    iter.position = iter.node->position();
   }
   else {
     iter.node = NULL;
   }
   return iter;
-
-  // std::cout << "node position: " << iter.position << std::endl;
-  // std::cout << "node count: " << iter.node->count() << std::endl;
+  
+  // Original code
   // while (iter.node && iter.position == iter.node->count()) {
-  //   std::cout << "node position " << iter.node->position() << std::endl;
-  //   std::cout << "node count " << iter.node->count() << std::endl;
   //   iter.position = iter.node->position();
   //   iter.node = iter.node->parent();
   //   if (iter.node->leaf()) {
-  //     std::cout << "leaf" << std::endl;
   //     iter.node = NULL;
   //   }
   // }
