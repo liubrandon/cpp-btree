@@ -2223,7 +2223,6 @@ void* btree<P>::internal_last_next_func(void* ptr, chase_args_t args) {
 
 template <typename P> template <typename IterType>
 inline IterType btree<P>::internal_last(IterType iter) {
-  std::cout << "# internal_last() called" << std::endl;
   chase_args_t args;
   args.backend_type = LOCAL;
   int exit_code;
