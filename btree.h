@@ -2236,16 +2236,6 @@ inline IterType btree<P>::internal_last(IterType iter) {
     iter.node = NULL;
   }
   return iter;
-  
-  // Original code
-  // while (iter.node && iter.position == iter.node->count()) {
-  //   iter.position = iter.node->position();
-  //   iter.node = iter.node->parent();
-  //   if (iter.node->leaf()) {
-  //     iter.node = NULL;
-  //   }
-  // }
-  // return iter;
 }
 
 template <typename P>
